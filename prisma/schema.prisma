@@ -1,0 +1,46 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db" // local fallback; Turso used at runtime via adapter
+}
+
+model Photo {
+  id                 String   @id @default(cuid())
+  cloudinaryPublicId String
+  url                String
+  thumbnailUrl       String?
+  description        String?
+  takenAt            DateTime
+  uploadedAt         DateTime @default(now())
+
+  tags PhotoTag[]
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String @unique
+
+  photos PhotoTag[]
+}
+
+model PhotoTag {
+  photoId String
+  tagId   String
+  photo   Photo  @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([photoId, tagId])
+}
+
+model VideoJob {
+  id        String   @id @default(cuid())
+  status    String   @default("pending") // pending | processing | done | failed
+  dateFrom  DateTime
+  dateTo    DateTime
+  outputUrl String?
+  createdAt DateTime @default(now())
+}
