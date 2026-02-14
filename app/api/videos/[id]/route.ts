@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-type Params = { params: Promise<{ id: string }> };
-
 // GET /api/videos/:id – get video job status
-export async function GET(_request: NextRequest, { params }: Params) {
-  const { id } = await params;
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const { id } = params;
 
   try {
     const job = await db.videoJob.findUnique({ where: { id } });
@@ -18,9 +19,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
       id: job.id,
       status: job.status,
       outputUrl: job.outputUrl,
-      dateFrom: job.dateFrom,
-      dateTo: job.dateTo,
-      createdAt: job.createdAt,
+      dateFrom: job.dateFrom.toISOString(),
+      dateTo: job.dateTo.toISOString(),
+      createdAt: job.createdAt.toISOString(),
     });
   } catch (error) {
     console.error("GET /api/videos/:id error:", error);

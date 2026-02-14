@@ -25,26 +25,44 @@ export default function VideoCreatorPage() {
   const [dateTo, setDateTo] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
-  const [job, setJob] = useState<VideoJob | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [job, setJob] = useState<VideoJob | null>(null);  
+  const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // --- Polling ---
+
   function startPolling(jobId: string) {
-    stopPolling();
-    intervalRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/videos/${jobId}`);
-        if (!res.ok) throw new Error("Failed to fetch status");
-        const data: VideoJob = await res.json();
-        setJob(data);
-        if (data.status === "done" || data.status === "failed") {
-          stopPolling();
-        }
-      } catch {
-        // keep polling on transient errors
+  stopPolling();
+
+  let delay = 2000;          // מתחילים ב-2 שניות
+  const maxDelay = 15000;    // לא עוברים 15 שניות
+
+  async function poll() {
+    try {
+      console.log("Polling at:", new Date().toLocaleTimeString());
+      
+      const res = await fetch(`/api/videos/${jobId}`);
+      if (!res.ok) throw new Error("Failed to fetch status");
+
+      const data: VideoJob = await res.json();
+      setJob(data);
+
+      if (data.status === "done" || data.status === "failed") {
+        stopPolling();
+        return;
       }
-    }, 3000);
+
+      // Backoff: מגדילים דיליי כל סבב      
+      delay = Math.min(delay * 1.5, maxDelay);
+      const jitter = Math.floor(Math.random() * 500); // עד חצי שניה
+      intervalRef.current = setTimeout(poll, delay + jitter);
+
+    } catch {
+      // במקרה שגיאת רשת – ננסה שוב עם אותו delay
+      intervalRef.current = setTimeout(poll, delay);
+    }
   }
+
+  poll();
+}
 
   function stopPolling() {
     if (intervalRef.current) {
